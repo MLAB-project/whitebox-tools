@@ -8,12 +8,13 @@ import cv2.cv as cv
 import numpy as np
 import PIL
 from PIL import Image
-
+import time
 
 class AppWindow( gtk.Window ):
     def __init__(self):
         self.valZoom = 0
         self.valAutoExpo = False
+        self.valShoot = False
         gtk.Window.__init__(self)
         self.connect( 'delete-event', gtk.main_quit )
 
@@ -36,13 +37,16 @@ class AppWindow( gtk.Window ):
         prop_button = gtk.Button( label = "Properties" )
         hbox.pack_start( prop_button, False, False )
 
-        auto_button = gtk.Button( label = "AutoExpousure" )
+        shoot_button = gtk.Button( label = "Shoot" )
+        hbox.pack_start( shoot_button, False, False )
+
+        auto_button = gtk.Button( label = "*AutoExpousure" )
         hbox.pack_start( auto_button, False, False )
 
-        calib_button = gtk.Button( label = "LensCalib" )
+        calib_button = gtk.Button( label = "*LensCalib" )
         hbox.pack_start( calib_button, False, False )
 
-        zoom_button = gtk.Button( label = "Zoom" )
+        zoom_button = gtk.Button( label = "*Zoom" )
         hbox.pack_start( zoom_button, False, False )
 
         self.fmt_sel = unicapgtk.VideoFormatSelection()
@@ -62,6 +66,7 @@ class AppWindow( gtk.Window ):
         self.property_dialog.connect( 'delete-event', self.property_dialog.hide_on_delete )
         prop_button.connect( 'clicked', lambda(x): self.property_dialog.present() )
         auto_button.connect( 'clicked', self.AutoExpousure )
+        shoot_button.connect( 'clicked', self.Shoot )
         self.property_dialog.hide()
 
         dev = unicap.enumerate_devices()[0]
@@ -87,6 +92,9 @@ class AppWindow( gtk.Window ):
 
     def AutoExpousure(self, button=None):
         self.valAutoExpo = True
+
+    def Shoot(self, button=None):
+        self.valShoot = True
 
     def CalibExpousure(self, button=None):
         self.valCalib = True
@@ -156,6 +164,15 @@ class AppWindow( gtk.Window ):
                 
 
             print "AutoExpousure done"
+        if self.valShoot:
+            self.valShoot = False
+            image = np.fromstring(imgbuf.tostring(), np.uint8).reshape(height, width, 3)
+            #img_np = cv2.imdecode(image, cv2.CV_LOAD_IMAGE_GRAYSCALE)
+            gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            img_new =  cv2.cvtColor(gray_image, cv2.COLOR_BAYER_GR2RGB)
+            cv2.imwrite("raw_"+time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime())+".jpg",image)
+            cv2.imwrite("bayer_"+time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime())+".jpg",img_new)
+            print "Auto Expo processed"
 
         # Draw a circle and a cross on the video image 
         imgbuf.draw_line( (width/2 - 50, height/2 - 50), (width/2 + 50, height/2 + 50), (255,10,10), 0 )
